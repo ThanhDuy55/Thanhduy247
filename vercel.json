@@ -1,13 +1,13 @@
 {
   "functions": {
-    "index.js": {
+    "api/index.js": {
       "excludeFiles": "!(*.test.js)"
     }
   },
   "rewrites": [
     {
       "source": "/(.*)",
-      "destination": "/"
+      "destination": "/api/index"
     }
   ]
 }
