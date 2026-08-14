@@ -1,5 +1,5 @@
-// api/index.js – Telegram Bot trên Vercel
-const { Telegraf } = require('telegraf');
+// api/index.js – Telegram Bot trên Vercel (Phiên bản đầy đủ)
+const { Telegraf, Markup } = require('telegraf');
 const mongoose = require('mongoose');
 
 // ============ BIẾN MÔI TRƯỜNG ============
@@ -61,6 +61,7 @@ const Order = mongoose.model('Order', OrderSchema);
 // ============ KHỞI TẠO BOT ============
 const bot = new Telegraf(BOT_TOKEN);
 
+// Middleware lưu user
 bot.use(async (ctx, next) => {
   if (!ctx.from) return next();
   try {
@@ -85,6 +86,12 @@ bot.use(async (ctx, next) => {
 
 // ============ LỆNH /start ============
 bot.start(async (ctx) => {
+  const keyboard = Markup.keyboard([
+    ['🛒 Xem shop', '💰 Số dư'],
+    ['📋 Lịch sử', '💳 Nạp tiền'],
+    ['📚 Hướng dẫn', '📞 Hỗ trợ']
+  ]).resize();
+
   await ctx.replyWithHTML(
     `🤖 <b>CHÀO MỪNG ĐẾN SHOP THÀNH DUY!</b>\n\n` +
     `📌 <b>DANH SÁCH LỆNH:</b>\n\n` +
@@ -98,7 +105,8 @@ bot.start(async (ctx) => {
     `2️⃣ Chọn ID sản phẩm (dãy chữ số)\n` +
     `3️⃣ Gõ /buy [ID] để mua\n\n` +
     `📞 <b>Hỗ trợ:</b> Liên hệ Admin @ankaryios\n\n` +
-    `💡 <b>Lưu ý:</b> Bạn cần nạp tiền trước khi mua hàng!`
+    `💡 <b>Lưu ý:</b> Bạn cần nạp tiền trước khi mua hàng!`,
+    keyboard
   );
 });
 
@@ -129,6 +137,63 @@ bot.command('help', async (ctx) => {
     `  💬 Telegram: @ankaryios\n` +
     `  📱 Zalo: 0372864913`
   );
+});
+
+// ============ XỬ LÝ NÚT BẤM ============
+bot.hears('🛒 Xem shop', async (ctx) => {
+  await ctx.reply('🔄 Đang tải danh sách sản phẩm...');
+  await bot.telegram.sendMessage(ctx.chat.id, '/shop');
+});
+
+bot.hears('💰 Số dư', async (ctx) => {
+  await ctx.reply('🔄 Đang kiểm tra số dư...');
+  await bot.telegram.sendMessage(ctx.chat.id, '/balance');
+});
+
+bot.hears('📋 Lịch sử', async (ctx) => {
+  await ctx.reply('🔄 Đang tải lịch sử mua hàng...');
+  await bot.telegram.sendMessage(ctx.chat.id, '/history');
+});
+
+bot.hears('💳 Nạp tiền', async (ctx) => {
+  await ctx.reply('🔄 Đang tải hướng dẫn nạp tiền...');
+  await bot.telegram.sendMessage(ctx.chat.id, '/recharge');
+});
+
+bot.hears('📚 Hướng dẫn', async (ctx) => {
+  await ctx.reply('🔄 Đang tải hướng dẫn...');
+  await bot.telegram.sendMessage(ctx.chat.id, '/help');
+});
+
+bot.hears('📞 Hỗ trợ', async (ctx) => {
+  await ctx.replyWithHTML(
+    `📞 <b>HỖ TRỢ KHÁCH HÀNG</b>\n\n` +
+    `Nếu bạn gặp vấn đề, vui lòng liên hệ:\n\n` +
+    `💬 <b>Telegram:</b> @ankaryios\n` +
+    `📱 <b>Zalo:</b> 0372864913\n\n` +
+    `⏰ Thời gian hỗ trợ: 8:00 - 22:00 hàng ngày.`
+  );
+});
+
+// ============ XỬ LÝ TIN NHẮN KHÔNG HỢP LỆ ============
+bot.on('text', async (ctx) => {
+  const text = ctx.message.text;
+  
+  // Nếu tin nhắn không phải lệnh và không phải nút bấm
+  if (!text.startsWith('/') && 
+      !['🛒 Xem shop', '💰 Số dư', '📋 Lịch sử', '💳 Nạp tiền', '📚 Hướng dẫn', '📞 Hỗ trợ'].includes(text)) {
+    
+    const keyboard = Markup.keyboard([
+      ['/start']
+    ]).resize();
+    
+    await ctx.replyWithHTML(
+      `👋 <b>Chào bạn!</b>\n\n` +
+      `Vui lòng nhấn nút <b>/start</b> bên dưới để bắt đầu sử dụng bot.\n` +
+      `Hoặc gõ <code>/help</code> để xem hướng dẫn chi tiết.`,
+      keyboard
+    );
+  }
 });
 
 // ============ LỆNH /shop ============
@@ -272,7 +337,6 @@ bot.command('addproduct', async (ctx) => {
     if (type === 'account') {
       accUser = parts[2] || '';
       accPass = parts[3] || '';
-      // Kiểm tra nếu có tham số ảnh
       const imageMatch = text.match(/"([^"]+)"(?!.*")/);
       if (imageMatch && imageMatch.length > 1) {
         image = imageMatch[1];
