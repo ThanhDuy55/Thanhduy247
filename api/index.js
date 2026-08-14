@@ -86,12 +86,48 @@ bot.use(async (ctx, next) => {
 // ============ LỆNH /start ============
 bot.start(async (ctx) => {
   await ctx.replyWithHTML(
-    `🤖 <b>Chào mừng đến Shop Thành Duy!</b>\n\n` +
-    `/shop – Xem sản phẩm\n` +
-    `/balance – Số dư\n` +
-    `/history – Lịch sử\n` +
-    `/recharge – Nạp tiền\n` +
-    `/admin – Quản lý (Admin)`
+    `🤖 <b>CHÀO MỪNG ĐẾN SHOP THÀNH DUY!</b>\n\n` +
+    `📌 <b>DANH SÁCH LỆNH:</b>\n\n` +
+    `🛒 <b>Xem sản phẩm:</b> /shop\n` +
+    `💰 <b>Xem số dư:</b> /balance\n` +
+    `📋 <b>Xem lịch sử mua:</b> /history\n` +
+    `💳 <b>Nạp tiền:</b> /recharge\n` +
+    `📚 <b>Hướng dẫn chi tiết:</b> /help\n\n` +
+    `🔑 <b>Hướng dẫn mua hàng:</b>\n` +
+    `1️⃣ Gõ /shop để xem sản phẩm\n` +
+    `2️⃣ Chọn ID sản phẩm (dãy chữ số)\n` +
+    `3️⃣ Gõ /buy [ID] để mua\n\n` +
+    `📞 <b>Hỗ trợ:</b> Liên hệ Admin @ankaryios\n\n` +
+    `💡 <b>Lưu ý:</b> Bạn cần nạp tiền trước khi mua hàng!`
+  );
+});
+
+// ============ LỆNH /help ============
+bot.command('help', async (ctx) => {
+  await ctx.replyWithHTML(
+    `📚 <b>HƯỚNG DẪN SỬ DỤNG BOT</b>\n\n` +
+    `🔹 <b>CÁC LỆNH CƠ BẢN:</b>\n\n` +
+    `🛒 <b>/shop</b> – Xem danh sách sản phẩm\n` +
+    `   💡 Mỗi sản phẩm có 1 ID để mua\n\n` +
+    `💳 <b>/buy [ID]</b> – Mua sản phẩm\n` +
+    `   📌 Ví dụ: <code>/buy 65f1a2b3c4d5</code>\n\n` +
+    `💰 <b>/balance</b> – Xem số dư tài khoản\n\n` +
+    `📋 <b>/history</b> – Xem lịch sử mua hàng\n\n` +
+    `💳 <b>/recharge</b> – Hướng dẫn nạp tiền\n\n` +
+    `👤 <b>/start</b> – Xem menu chính\n\n` +
+    `🔹 <b>HƯỚNG DẪN MUA HÀNG:</b>\n` +
+    `1️⃣ Gõ /shop để xem sản phẩm\n` +
+    `2️⃣ Chọn ID sản phẩm (dãy chữ số)\n` +
+    `3️⃣ Gõ /buy [ID] để mua\n` +
+    `4️⃣ Hệ thống tự động trừ tiền và giao hàng\n\n` +
+    `🔹 <b>HƯỚNG DẪN NẠP TIỀN:</b>\n` +
+    `1️⃣ Gõ /recharge để xem thông tin\n` +
+    `2️⃣ Chuyển khoản theo hướng dẫn\n` +
+    `3️⃣ Gửi ảnh biên lai cho Admin\n` +
+    `4️⃣ Admin sẽ cộng tiền cho bạn\n\n` +
+    `📞 <b>HỖ TRỢ:</b>\n` +
+    `  💬 Telegram: @ankaryios\n` +
+    `  📱 Zalo: 0372864913`
   );
 });
 
@@ -130,7 +166,7 @@ bot.command('buy', async (ctx) => {
     const user = ctx.user;
     if (user.balance < product.price) {
       return ctx.replyWithHTML(
-        `❌ Số dư không đủ!\n💰 Bạn có: ${user.balance.toLocaleString()}đ\n💳 Cần thêm: ${(product.price - user.balance).toLocaleString()}đ`
+        `❌ Số dư không đủ!\n💰 Bạn có: ${user.balance.toLocaleString()}đ\n💳 Cần thêm: ${(product.price - user.balance).toLocaleString()}đ\n\n📌 Vui lòng nạp tiền: /recharge`
       );
     }
     user.balance -= product.price;
@@ -159,7 +195,7 @@ bot.command('buy', async (ctx) => {
 
 // ============ LỆNH /balance ============
 bot.command('balance', async (ctx) => {
-  await ctx.replyWithHTML(`💰 <b>Số dư:</b> ${ctx.user.balance.toLocaleString()}đ`);
+  await ctx.replyWithHTML(`💰 <b>Số dư của bạn:</b>\n\n💵 ${ctx.user.balance.toLocaleString()}đ`);
 });
 
 // ============ LỆNH /history ============
@@ -167,7 +203,7 @@ bot.command('history', async (ctx) => {
   try {
     await connectToDatabase();
     const orders = await Order.find({ userId: ctx.user.userId }).sort({ createdAt: -1 }).limit(10);
-    if (!orders.length) return ctx.reply('📭 Chưa có đơn hàng.');
+    if (!orders.length) return ctx.reply('📭 Bạn chưa có đơn hàng nào.');
     let msg = '📋 <b>Lịch sử</b>\n\n';
     orders.forEach((o, i) => {
       msg += `${i+1}. ${o.productName} – ${o.price.toLocaleString()}đ\n`;
@@ -201,11 +237,16 @@ bot.command('recharge', async (ctx) => {
 bot.command('admin', async (ctx) => {
   if (ctx.user.role !== 'admin') return ctx.reply('⛔ Không có quyền!');
   await ctx.replyWithHTML(
-    `🔑 <b>ADMIN PANEL</b>\n\n` +
-    `➕ <code>/addproduct "Tên" giá loại user pass "link_ảnh"</code>\n` +
-    `➖ <code>/delproduct [id]</code>\n` +
-    `💰 <code>/addbalance [userId] [số tiền]</code>\n` +
-    `📊 <code>/stats</code>`
+    `🔑 <b>BẢNG ĐIỀU KHIỂN ADMIN</b>\n\n` +
+    `📦 <b>Quản lý sản phẩm:</b>\n` +
+    `  ➕ <code>/addproduct "Tên" giá loại user pass "link_ảnh"</code>\n` +
+    `  ➖ <code>/delproduct [id]</code>\n` +
+    `  📋 <code>/products</code>\n\n` +
+    `👤 <b>Quản lý user:</b>\n` +
+    `  💰 <code>/addbalance [userId] [số tiền]</code>\n` +
+    `  👤 <code>/users</code>\n\n` +
+    `📊 <b>Thống kê:</b>\n` +
+    `  📊 <code>/stats</code>`
   );
 });
 
@@ -231,7 +272,7 @@ bot.command('addproduct', async (ctx) => {
     if (type === 'account') {
       accUser = parts[2] || '';
       accPass = parts[3] || '';
-      // Kiểm tra nếu có tham số ảnh (nằm trong dấu ngoặc kép)
+      // Kiểm tra nếu có tham số ảnh
       const imageMatch = text.match(/"([^"]+)"(?!.*")/);
       if (imageMatch && imageMatch.length > 1) {
         image = imageMatch[1];
@@ -259,7 +300,7 @@ bot.command('addproduct', async (ctx) => {
       image
     });
     await product.save();
-    await ctx.replyWithHTML(`✅ Đã thêm:\n📦 ${name}\n💰 ${price.toLocaleString()}đ\n🆔 <code>${product._id}</code>\n${image ? '🖼 Có ảnh' : ''}`);
+    await ctx.replyWithHTML(`✅ Đã thêm sản phẩm!\n📦 ${name}\n💰 ${price.toLocaleString()}đ\n🆔 <code>${product._id}</code>\n${image ? '🖼 Có ảnh đính kèm' : ''}`);
   } catch (err) {
     console.error('❌ Lỗi addproduct:', err);
     ctx.reply('⚠️ Lỗi thêm sản phẩm!');
@@ -278,6 +319,34 @@ bot.command('delproduct', async (ctx) => {
   } catch (err) {
     console.error('❌ Lỗi delproduct:', err);
     ctx.reply('⚠️ Lỗi xóa sản phẩm!');
+  }
+});
+
+// ============ LỆNH /products ============
+bot.command('products', async (ctx) => {
+  if (ctx.user.role !== 'admin') return ctx.reply('⛔ Không có quyền!');
+  try {
+    await connectToDatabase();
+    const products = await Product.find().sort({ createdAt: -1 });
+    if (!products.length) return ctx.reply('📭 Chưa có sản phẩm.');
+    let msg = '📦 <b>DANH SÁCH SẢN PHẨM (Admin)</b>\n\n';
+    products.forEach((p, i) => {
+      msg += `${i+1}. <b>${p.name}</b>\n`;
+      msg += `   💰 ${p.price.toLocaleString()}đ | 📦 Còn: ${p.stock}\n`;
+      msg += `   📂 Loại: ${p.type}\n`;
+      msg += `   🆔 <code>${p._id}</code>\n`;
+      if (p.type === 'account') {
+        msg += `   👤 ${p.accUsername} | 🔑 ${p.accPassword}\n`;
+      }
+      if (p.image) {
+        msg += `   🖼 <a href="${p.image}">Xem ảnh</a>\n`;
+      }
+      msg += `\n`;
+    });
+    await ctx.replyWithHTML(msg);
+  } catch (err) {
+    console.error('❌ Lỗi products:', err);
+    ctx.reply('⚠️ Lỗi tải danh sách sản phẩm!');
   }
 });
 
@@ -302,6 +371,27 @@ bot.command('addbalance', async (ctx) => {
   }
 });
 
+// ============ LỆNH /users ============
+bot.command('users', async (ctx) => {
+  if (ctx.user.role !== 'admin') return ctx.reply('⛔ Không có quyền!');
+  try {
+    await connectToDatabase();
+    const users = await User.find().sort({ createdAt: -1 }).limit(20);
+    if (!users.length) return ctx.reply('📭 Chưa có user.');
+    let msg = '👤 <b>DANH SÁCH USER</b>\n\n';
+    users.forEach((u, i) => {
+      msg += `${i+1}. ${u.username || 'No name'}\n`;
+      msg += `   🆔 <code>${u.userId}</code>\n`;
+      msg += `   💰 ${u.balance.toLocaleString()}đ\n`;
+      msg += `   🔑 Vai trò: ${u.role}\n\n`;
+    });
+    await ctx.replyWithHTML(msg);
+  } catch (err) {
+    console.error('❌ Lỗi users:', err);
+    ctx.reply('⚠️ Lỗi tải danh sách user!');
+  }
+});
+
 // ============ LỆNH /stats ============
 bot.command('stats', async (ctx) => {
   if (ctx.user.role !== 'admin') return ctx.reply('⛔ Không có quyền!');
@@ -312,11 +402,11 @@ bot.command('stats', async (ctx) => {
     const totalProducts = await Product.countDocuments();
     const revenue = await Order.aggregate([{ $group: { _id: null, total: { $sum: '$price' } } }]);
     await ctx.replyWithHTML(
-      `📊 <b>THỐNG KÊ</b>\n\n` +
-      `👤 Số user: ${totalUsers}\n` +
-      `📦 Số sản phẩm: ${totalProducts}\n` +
-      `📋 Số đơn hàng: ${totalOrders}\n` +
-      `💰 Doanh thu: ${(revenue[0]?.total || 0).toLocaleString()}đ`
+      `📊 <b>THỐNG KÊ HỆ THỐNG</b>\n\n` +
+      `👤 Số user: <b>${totalUsers}</b>\n` +
+      `📦 Số sản phẩm: <b>${totalProducts}</b>\n` +
+      `📋 Số đơn hàng: <b>${totalOrders}</b>\n` +
+      `💰 Doanh thu: <b>${(revenue[0]?.total || 0).toLocaleString()}đ</b>`
     );
   } catch (err) {
     console.error('❌ Lỗi stats:', err);
