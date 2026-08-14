@@ -2,7 +2,6 @@
 const { Telegraf } = require('telegraf');
 const mongoose = require('mongoose');
 
-// Biến môi trường (sẽ cấu hình trên Vercel)
 const BOT_TOKEN = process.env.BOT_TOKEN;
 const MONGO_URI = process.env.MONGO_URI;
 
@@ -10,7 +9,6 @@ if (!BOT_TOKEN || !MONGO_URI) {
   console.error('❌ Thiếu biến môi trường!');
 }
 
-// Kết nối MongoDB (dùng connection pool)
 let cachedDb = null;
 async function connectToDatabase() {
   if (cachedDb) return cachedDb;
@@ -55,7 +53,6 @@ const Order = mongoose.model('Order', OrderSchema);
 // ============ KHỞI TẠO BOT ============
 const bot = new Telegraf(BOT_TOKEN);
 
-// Middleware lưu user
 bot.use(async (ctx, next) => {
   if (!ctx.from) return next();
   await connectToDatabase();
@@ -73,7 +70,6 @@ bot.use(async (ctx, next) => {
   next();
 });
 
-// ============ LỆNH /start ============
 bot.start(async (ctx) => {
   await ctx.replyWithHTML(
     `🤖 <b>Chào mừng đến Shop Thành Duy!</b>\n\n` +
@@ -85,7 +81,6 @@ bot.start(async (ctx) => {
   );
 });
 
-// ============ LỆNH /shop ============
 bot.command('shop', async (ctx) => {
   await connectToDatabase();
   const products = await Product.find({ stock: { $gt: 0 } });
@@ -99,7 +94,6 @@ bot.command('shop', async (ctx) => {
   await ctx.replyWithHTML(msg);
 });
 
-// ============ LỆNH /buy ============
 bot.command('buy', async (ctx) => {
   await connectToDatabase();
   const args = ctx.message.text.split(' ');
@@ -133,12 +127,10 @@ bot.command('buy', async (ctx) => {
   await ctx.reply(msg);
 });
 
-// ============ LỆNH /balance ============
 bot.command('balance', async (ctx) => {
   await ctx.replyWithHTML(`💰 <b>Số dư:</b> ${ctx.user.balance.toLocaleString()}đ`);
 });
 
-// ============ LỆNH /history ============
 bot.command('history', async (ctx) => {
   await connectToDatabase();
   const orders = await Order.find({ userId: ctx.user.userId }).sort({ createdAt: -1 }).limit(10);
@@ -151,7 +143,6 @@ bot.command('history', async (ctx) => {
   await ctx.replyWithHTML(msg);
 });
 
-// ============ LỆNH /recharge ============
 bot.command('recharge', async (ctx) => {
   await ctx.replyWithHTML(
     `💳 <b>NẠP TIỀN</b>\n\n` +
@@ -161,7 +152,6 @@ bot.command('recharge', async (ctx) => {
   );
 });
 
-// ============ LỆNH ADMIN ============
 bot.command('admin', async (ctx) => {
   if (ctx.user.role !== 'admin') return ctx.reply('⛔ Không có quyền!');
   await ctx.replyWithHTML(
@@ -173,7 +163,6 @@ bot.command('admin', async (ctx) => {
   );
 });
 
-// ============ /addproduct ============
 bot.command('addproduct', async (ctx) => {
   if (ctx.user.role !== 'admin') return ctx.reply('⛔ Không có quyền!');
   await connectToDatabase();
@@ -205,7 +194,6 @@ bot.command('addproduct', async (ctx) => {
   await ctx.replyWithHTML(`✅ Đã thêm:\n📦 ${name}\n💰 ${price.toLocaleString()}đ\n🆔 <code>${product._id}</code>`);
 });
 
-// ============ /delproduct ============
 bot.command('delproduct', async (ctx) => {
   if (ctx.user.role !== 'admin') return ctx.reply('⛔ Không có quyền!');
   await connectToDatabase();
@@ -215,7 +203,6 @@ bot.command('delproduct', async (ctx) => {
   await ctx.reply(result ? `✅ Đã xóa ${result.name}` : '❌ Không tìm thấy');
 });
 
-// ============ /addbalance ============
 bot.command('addbalance', async (ctx) => {
   if (ctx.user.role !== 'admin') return ctx.reply('⛔ Không có quyền!');
   await connectToDatabase();
@@ -231,7 +218,6 @@ bot.command('addbalance', async (ctx) => {
   await ctx.replyWithHTML(`✅ Đã cộng <b>${amount.toLocaleString()}đ</b> cho ${user.username}`);
 });
 
-// ============ /stats ============
 bot.command('stats', async (ctx) => {
   if (ctx.user.role !== 'admin') return ctx.reply('⛔ Không có quyền!');
   await connectToDatabase();
@@ -248,7 +234,6 @@ bot.command('stats', async (ctx) => {
   );
 });
 
-// ============ EXPORT CHO VERCEL ============
 module.exports = async (req, res) => {
   try {
     await bot.handleUpdate(req.body, res);
