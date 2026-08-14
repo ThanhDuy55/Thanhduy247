@@ -1,4 +1,9 @@
 {
+  "functions": {
+    "index.js": {
+      "excludeFiles": "!(*.test.js)"
+    }
+  },
   "rewrites": [
     {
       "source": "/(.*)",
