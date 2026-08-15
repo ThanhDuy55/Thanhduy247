@@ -5,7 +5,11 @@ const mongoose = require('mongoose');
 const BOT_TOKEN = process.env.BOT_TOKEN;
 const MONGO_URI = process.env.MONGO_URI;
 
-// ============ KẾT NỐI MONGODB (TỐI ƯU CHO VERCEL) ============
+console.log('🚀 Bot đang khởi động...');
+console.log('🔑 BOT_TOKEN:', BOT_TOKEN ? '✅ Đã có token' : '❌ Thiếu token');
+console.log('📦 MONGO_URI:', MONGO_URI ? '✅ Đã có uri' : '❌ Thiếu uri');
+
+// ============ KẾT NỐI MONGODB ============
 let cachedDb = null;
 
 async function connectToDatabase() {
@@ -18,7 +22,7 @@ async function connectToDatabase() {
     console.log('🔄 Đang kết nối MongoDB...');
     const conn = await mongoose.connect(MONGO_URI, {
       maxPoolSize: 1,
-      serverSelectionTimeoutMS: 10000,
+      serverSelectionTimeoutMS: 5000,
       socketTimeoutMS: 10000,
     });
     cachedDb = conn;
@@ -68,7 +72,10 @@ const bot = new Telegraf(BOT_TOKEN);
 
 // ============ MIDDLEWARE ============
 bot.use(async (ctx, next) => {
-  if (!ctx.from) return next();
+  if (!ctx.from) {
+    console.log('⚠️ Không có từ trường');
+    return next();
+  }
   
   try {
     await connectToDatabase();
@@ -81,7 +88,7 @@ bot.use(async (ctx, next) => {
         username: ctx.from.username || ctx.from.first_name
       });
       await user.save();
-      console.log(`👤 User mới: ${userId}`);
+      console.log(`👤 User mới: ${userId} - ${user.username}`);
     }
     
     ctx.user = user;
@@ -94,6 +101,8 @@ bot.use(async (ctx, next) => {
 
 // ============ LỆNH /start ============
 bot.start(async (ctx) => {
+  console.log(`📩 /start từ ${ctx.from.id}`);
+  
   const keyboard = Markup.keyboard([
     ['🛒 Xem shop', '💰 Số dư'],
     ['📋 Lịch sử', '💳 Nạp tiền'],
@@ -169,6 +178,8 @@ bot.hears('📞 Hỗ trợ', async (ctx) => {
 
 // ============ LỆNH /shop ============
 bot.command('shop', async (ctx) => {
+  console.log(`📩 /shop từ ${ctx.from.id}`);
+  
   try {
     await connectToDatabase();
     const products = await Product.find({ stock: { $gt: 0 } });
@@ -194,6 +205,8 @@ bot.command('shop', async (ctx) => {
 
 // ============ LỆNH /balance ============
 bot.command('balance', async (ctx) => {
+  console.log(`📩 /balance từ ${ctx.from.id}`);
+  
   try {
     await connectToDatabase();
     const user = await User.findOne({ userId: ctx.user.userId });
@@ -250,6 +263,8 @@ bot.command('recharge', async (ctx) => {
 
 // ============ LỆNH /buy ============
 bot.command('buy', async (ctx) => {
+  console.log(`📩 /buy từ ${ctx.from.id}`);
+  
   try {
     await connectToDatabase();
     const args = ctx.message.text.split(' ');
