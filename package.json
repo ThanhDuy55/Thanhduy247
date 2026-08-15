@@ -1,11 +1,10 @@
 {
-  "name": "telegram-shop-bot",
+  "name": "thanhduy247-bot",
   "version": "1.0.0",
-  "scripts": {
-    "start": "node api/index.js"
-  },
+  "description": "Telegram Shop Bot",
+  "main": "api/index.js",
   "dependencies": {
-    "mongoose": "^7.5.0",
-    "telegraf": "^4.15.3"
+    "telegraf": "^4.16.3",
+    "mongoose": "^8.0.0"
   }
 }
