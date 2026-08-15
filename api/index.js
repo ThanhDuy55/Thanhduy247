@@ -17,7 +17,7 @@ async function connectToDatabase() {
     console.log('✅ Dùng cached connection');
     return cachedDb;
   }
-  
+
   try {
     console.log('🔄 Đang kết nối MongoDB...');
     const conn = await mongoose.connect(MONGO_URI, {
@@ -76,12 +76,12 @@ bot.use(async (ctx, next) => {
     console.log('⚠️ Không có từ trường');
     return next();
   }
-  
+
   try {
     await connectToDatabase();
     const userId = String(ctx.from.id);
     let user = await User.findOne({ userId });
-    
+
     if (!user) {
       user = new User({
         userId,
@@ -90,7 +90,7 @@ bot.use(async (ctx, next) => {
       await user.save();
       console.log(`👤 User mới: ${userId} - ${user.username}`);
     }
-    
+
     ctx.user = user;
     await next();
   } catch (err) {
@@ -102,7 +102,7 @@ bot.use(async (ctx, next) => {
 // ============ LỆNH /start ============
 bot.start(async (ctx) => {
   console.log(`📩 /start từ ${ctx.from.id}`);
-  
+
   const keyboard = Markup.keyboard([
     ['🛒 Xem shop', '💰 Số dư'],
     ['📋 Lịch sử', '💳 Nạp tiền'],
@@ -179,23 +179,23 @@ bot.hears('📞 Hỗ trợ', async (ctx) => {
 // ============ LỆNH /shop ============
 bot.command('shop', async (ctx) => {
   console.log(`📩 /shop từ ${ctx.from.id}`);
-  
+
   try {
     await connectToDatabase();
     const products = await Product.find({ stock: { $gt: 0 } });
-    
+
     if (!products.length) {
       return ctx.reply('🛒 Chưa có sản phẩm nào!');
     }
-    
+
     let msg = '🛒 <b>SẢN PHẨM</b>\n\n';
     products.forEach((p, i) => {
-      msg += `${i+1}. <b>${p.name}</b>\n`;
+      msg += `${i + 1}. <b>${p.name}</b>\n`;
       msg += `   💰 ${p.price.toLocaleString()}đ\n`;
       msg += `   📦 Còn: ${p.stock}\n`;
       msg += `   ➡️ <code>/buy ${p._id}</code>\n\n`;
     });
-    
+
     await ctx.replyWithHTML(msg);
   } catch (err) {
     console.error('❌ Lỗi shop:', err.message);
@@ -206,12 +206,12 @@ bot.command('shop', async (ctx) => {
 // ============ LỆNH /balance ============
 bot.command('balance', async (ctx) => {
   console.log(`📩 /balance từ ${ctx.from.id}`);
-  
+
   try {
     await connectToDatabase();
     const user = await User.findOne({ userId: ctx.user.userId });
     if (!user) return ctx.reply('❌ Không tìm thấy user!');
-    
+
     await ctx.replyWithHTML(
       `💰 <b>Số dư của bạn</b>\n\n` +
       `💵 ${user.balance.toLocaleString()}đ`
@@ -229,18 +229,18 @@ bot.command('history', async (ctx) => {
     const orders = await Order.find({ userId: ctx.user.userId })
       .sort({ createdAt: -1 })
       .limit(10);
-    
+
     if (!orders.length) {
       return ctx.reply('📭 Bạn chưa có đơn hàng nào.');
     }
-    
+
     let msg = '📋 <b>LỊCH SỬ MUA HÀNG</b>\n\n';
     orders.forEach((o, i) => {
-      msg += `${i+1}. ${o.productName}\n`;
+      msg += `${i + 1}. ${o.productName}\n`;
       msg += `   💰 ${o.price.toLocaleString()}đ\n`;
       msg += `   🕐 ${o.createdAt.toLocaleString('vi-VN')}\n\n`;
     });
-    
+
     await ctx.replyWithHTML(msg);
   } catch (err) {
     console.error('❌ Lỗi history:', err.message);
@@ -264,22 +264,22 @@ bot.command('recharge', async (ctx) => {
 // ============ LỆNH /buy ============
 bot.command('buy', async (ctx) => {
   console.log(`📩 /buy từ ${ctx.from.id}`);
-  
+
   try {
     await connectToDatabase();
     const args = ctx.message.text.split(' ');
-    
+
     if (args.length < 2) {
       return ctx.reply('❌ Dùng: <code>/buy [ID]</code>');
     }
-    
+
     const product = await Product.findById(args[1]);
     if (!product) return ctx.reply('❌ Sản phẩm không tồn tại!');
     if (product.stock <= 0) return ctx.reply('❌ Hết hàng!');
-    
+
     const user = await User.findOne({ userId: ctx.user.userId });
     if (!user) return ctx.reply('❌ Không tìm thấy user!');
-    
+
     if (user.balance < product.price) {
       return ctx.replyWithHTML(
         `❌ Số dư không đủ!\n` +
@@ -288,14 +288,14 @@ bot.command('buy', async (ctx) => {
         `📌 Vui lòng nạp tiền: /recharge`
       );
     }
-    
+
     // Trừ tiền và cập nhật
     user.balance -= product.price;
     await user.save();
-    
+
     product.stock -= 1;
     await product.save();
-    
+
     // Tạo đơn hàng
     const order = new Order({
       userId: user.userId,
@@ -304,18 +304,18 @@ bot.command('buy', async (ctx) => {
       price: product.price
     });
     await order.save();
-    
+
     let msg = `✅ <b>MUA THÀNH CÔNG!</b>\n\n`;
     msg += `📦 ${product.name}\n`;
     msg += `💰 ${product.price.toLocaleString()}đ\n\n`;
-    
+
     if (product.type === 'account') {
       msg += `👤 ${product.accUsername}\n`;
       msg += `🔑 ${product.accPassword}`;
     } else if (product.type === 'file') {
       msg += `📥 ${product.fileLink}`;
     }
-    
+
     await ctx.replyWithHTML(msg);
   } catch (err) {
     console.error('❌ Lỗi buy:', err.message);
@@ -328,7 +328,7 @@ bot.command('admin', async (ctx) => {
   if (ctx.user.role !== 'admin') {
     return ctx.reply('⛔ Không có quyền!');
   }
-  
+
   await ctx.replyWithHTML(
     `🔑 <b>BẢNG ĐIỀU KHIỂN ADMIN</b>\n\n` +
     `➕ <code>/addproduct "Tên" giá account user pass</code>\n` +
@@ -346,15 +346,15 @@ bot.command('addproduct', async (ctx) => {
   if (ctx.user.role !== 'admin') {
     return ctx.reply('⛔ Không có quyền!');
   }
-  
+
   try {
     await connectToDatabase();
     const text = ctx.message.text;
-    
+
     // Tìm tên sản phẩm trong dấu ngoặc kép
     const first = text.indexOf('"');
     const second = text.indexOf('"', first + 1);
-    
+
     if (first === -1 || second === -1) {
       return ctx.replyWithHTML(
         '❌ <b>Cú pháp sai!</b>\n\n' +
@@ -363,26 +363,28 @@ bot.command('addproduct', async (ctx) => {
         '<code>/addproduct "Khóa học" 100000 file "https://link.com"</code>'
       );
     }
-    
+
     const name = text.substring(first + 1, second);
     const rest = text.substring(second + 1).trim().split(' ');
-    
+
     if (rest.length < 3) {
       return ctx.reply('❌ Thiếu thông tin! Cần: giá loại username password');
     }
-    
+
     const price = parseInt(rest[0]);
     if (isNaN(price) || price <= 0) {
       return ctx.reply('❌ Giá phải là số dương!');
     }
-    
+
     const type = rest[1];
     if (type !== 'account' && type !== 'file') {
       return ctx.reply('❌ Loại phải là "account" hoặc "file"');
     }
-    
-    let accUser = '', accPass = '', fileLink = '';
-    
+
+    let accUser = '',
+      accPass = '',
+      fileLink = '';
+
     if (type === 'account') {
       if (rest.length < 4) {
         return ctx.reply('❌ Thiếu username và password!');
@@ -395,7 +397,7 @@ bot.command('addproduct', async (ctx) => {
       }
       fileLink = rest[2] || '';
     }
-    
+
     const product = new Product({
       name,
       price,
@@ -406,9 +408,9 @@ bot.command('addproduct', async (ctx) => {
       fileLink,
       image: ''
     });
-    
+
     await product.save();
-    
+
     await ctx.replyWithHTML(
       `✅ <b>Đã thêm sản phẩm!</b>\n\n` +
       `📦 ${name}\n` +
@@ -426,12 +428,12 @@ bot.command('delproduct', async (ctx) => {
   if (ctx.user.role !== 'admin') {
     return ctx.reply('⛔ Không có quyền!');
   }
-  
+
   try {
     await connectToDatabase();
     const id = ctx.message.text.split(' ')[1];
     if (!id) return ctx.reply('❌ Dùng: /delproduct [ID]');
-    
+
     const result = await Product.findByIdAndDelete(id);
     await ctx.reply(result ? `✅ Đã xóa ${result.name}` : '❌ Không tìm thấy');
   } catch (err) {
@@ -445,23 +447,23 @@ bot.command('products', async (ctx) => {
   if (ctx.user.role !== 'admin') {
     return ctx.reply('⛔ Không có quyền!');
   }
-  
+
   try {
     await connectToDatabase();
     const products = await Product.find().sort({ createdAt: -1 });
-    
+
     if (!products.length) {
       return ctx.reply('📭 Chưa có sản phẩm.');
     }
-    
+
     let msg = '📦 <b>DANH SÁCH SẢN PHẨM</b>\n\n';
     products.forEach((p, i) => {
-      msg += `${i+1}. ${p.name}\n`;
+      msg += `${i + 1}. ${p.name}\n`;
       msg += `   💰 ${p.price.toLocaleString()}đ\n`;
       msg += `   📦 Còn: ${p.stock}\n`;
       msg += `   🆔 <code>${p._id}</code>\n\n`;
     });
-    
+
     await ctx.replyWithHTML(msg);
   } catch (err) {
     console.error('❌ Lỗi products:', err.message);
@@ -474,28 +476,28 @@ bot.command('addbalance', async (ctx) => {
   if (ctx.user.role !== 'admin') {
     return ctx.reply('⛔ Không có quyền!');
   }
-  
+
   try {
     await connectToDatabase();
     const args = ctx.message.text.split(' ');
-    
+
     if (args.length < 3) {
       return ctx.reply('❌ Dùng: /addbalance [userId] [số tiền]');
     }
-    
+
     const userId = args[1];
     const amount = parseInt(args[2]);
-    
+
     if (!amount || amount <= 0) {
       return ctx.reply('❌ Số tiền không hợp lệ!');
     }
-    
+
     const user = await User.findOne({ userId });
     if (!user) return ctx.reply('❌ Không tìm thấy user!');
-    
+
     user.balance += amount;
     await user.save();
-    
+
     await ctx.replyWithHTML(
       `✅ Đã cộng <b>${amount.toLocaleString()}đ</b> cho ${user.username}`
     );
@@ -510,23 +512,23 @@ bot.command('users', async (ctx) => {
   if (ctx.user.role !== 'admin') {
     return ctx.reply('⛔ Không có quyền!');
   }
-  
+
   try {
     await connectToDatabase();
     const users = await User.find().sort({ createdAt: -1 }).limit(20);
-    
+
     if (!users.length) {
       return ctx.reply('📭 Chưa có user.');
     }
-    
+
     let msg = '👤 <b>DANH SÁCH USER</b>\n\n';
     users.forEach((u, i) => {
-      msg += `${i+1}. ${u.username || 'No name'}\n`;
+      msg += `${i + 1}. ${u.username || 'No name'}\n`;
       msg += `   🆔 <code>${u.userId}</code>\n`;
       msg += `   💰 ${u.balance.toLocaleString()}đ\n`;
       msg += `   🔑 ${u.role}\n\n`;
     });
-    
+
     await ctx.replyWithHTML(msg);
   } catch (err) {
     console.error('❌ Lỗi users:', err.message);
@@ -539,13 +541,13 @@ bot.command('stats', async (ctx) => {
   if (ctx.user.role !== 'admin') {
     return ctx.reply('⛔ Không có quyền!');
   }
-  
+
   try {
     await connectToDatabase();
     const totalUsers = await User.countDocuments();
     const totalOrders = await Order.countDocuments();
     const totalProducts = await Product.countDocuments();
-    
+
     await ctx.replyWithHTML(
       `📊 <b>THỐNG KÊ</b>\n\n` +
       `👤 User: ${totalUsers}\n` +
@@ -561,7 +563,7 @@ bot.command('stats', async (ctx) => {
 // ============ XỬ LÝ TIN NHẮN THƯỜNG ============
 bot.on('text', async (ctx) => {
   const text = ctx.message.text;
-  
+
   if (!text.startsWith('/')) {
     await ctx.replyWithHTML(
       `👋 <b>Chào bạn!</b>\n\n` +
@@ -573,11 +575,11 @@ bot.on('text', async (ctx) => {
 // ============ WEBHOOK HANDLER ============
 module.exports = async (req, res) => {
   console.log(`📩 Webhook: ${req.method} ${req.url}`);
-  
+
   if (req.method !== 'POST') {
     return res.status(405).json({ error: 'Method Not Allowed' });
   }
-  
+
   try {
     await bot.handleUpdate(req.body, res);
   } catch (err) {
